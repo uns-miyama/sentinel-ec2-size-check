@@ -1,0 +1,24 @@
+import "tfplan/v2" as tfplan
+
+//許可するインスタンスタイプのリスト
+allowed_instance_types = [
+  "t2.nano",
+  "t2.micro",
+  "t2.small",
+]
+
+// Filterでプランの内容が記載されているデータの”resource_changes”の中から”aws_instance”のリソースを抽出
+aws_ec2_instances = filter tfplan.resource_changes as _, resource_changes {
+    resource_changes.type is "aws_instance"
+}
+
+// “aws_instance”のchange->after->.instance_typeをたどってそれが許可するインスタンスタイプにマッチするかを判別
+aws_ec2_is_not_large = rule {
+    all aws_ec2_instances as _, aws_ec2_instance {
+        aws_ec2_instance.change.after.instance_type in allowed_instance_types
+    }
+}
+
+main = rule {
+    aws_ec2_is_not_large
+}
